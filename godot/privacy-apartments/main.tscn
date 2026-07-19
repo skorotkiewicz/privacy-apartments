@@ -1,7 +1,11 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://dn2swo7fgvmud"]
 
-[ext_resource type="PackedScene" path="res://assets/privacy_apartments.glb" id="1_model"]
-[ext_resource type="Script" path="res://explorer.gd" id="2_controller"]
+[ext_resource type="PackedScene" uid="uid://cy3gsbq86e6an" path="res://assets/privacy_apartments.glb" id="1_model"]
+[ext_resource type="Script" uid="uid://bnn8g2d8t5bg6" path="res://explorer.gd" id="2_controller"]
+
+[sub_resource type="CapsuleShape3D" id="Capsule_player"]
+radius = 0.35
+height = 1.8
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -11,30 +15,40 @@ ambient_light_color = Color(0.8, 0.85, 1, 1)
 ambient_light_energy = 0.7
 tonemap_mode = 2
 
-[node name="ApartmentExplorer" type="Node3D"]
+[node name="ApartmentExplorer" type="Node3D" unique_id=350391128]
 
-[node name="Player" type="Node3D" parent="."]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 2, -24)
+[node name="Player" type="CharacterBody3D" parent="." unique_id=677719311]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.84, 0, -32.45)
 script = ExtResource("2_controller")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_main")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=302888302]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("Capsule_player")
 
-[node name="Apartments" parent="." instance=ExtResource("1_model")]
-
-[node name="Camera3D" type="Camera3D" parent="Player"]
+[node name="Camera3D" type="Camera3D" parent="Player" unique_id=749317080]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 current = true
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-58, -35, 0)
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=380207859]
+environment = SubResource("Environment_main")
+
+[node name="Apartments" parent="." unique_id=1280652106 instance=ExtResource("1_model")]
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1609323871]
+transform = Transform3D(0.7885849, 0.14437935, -0.5977364, 0.41932, -0.837252, 0.3509701, -0.44978315, -0.5274125, -0.72078526, -10.161776, -3.5008278, -20.433847)
 light_energy = 1.5
 shadow_enabled = true
 
-[node name="Controls" type="Label" parent="."]
+[node name="Sun2" type="DirectionalLight3D" parent="." unique_id=199242426]
+transform = Transform3D(-0.7465188, 0.66036963, 0.081375055, -0.033034727, -0.15893634, 0.98673606, 0.6645438, 0.7339287, 0.14046407, -10.161776, 29.429314, 59.902534)
+light_energy = 1.5
+shadow_enabled = true
+
+[node name="Controls" type="Label" parent="." unique_id=1685365573]
 offset_left = 16.0
 offset_top = 16.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
-text = "WASD: move  |  Space / Shift: up / down  |  Mouse: look  |  Esc: release mouse"
+text = "WASD: walk  |  Space: jump  |  Mouse: look  |  Esc: release mouse"
