@@ -270,6 +270,12 @@ def build_privacy_apartments():
         roughness=0.62
     )
 
+    mat_railing_glass = make_material(
+        "RailingGlass",
+        (0.55, 0.78, 0.88, 0.42),
+        roughness=0.12
+    )
+
     # ------------------------------------------------------------
     # OVERALL DIMENSIONS
     # ------------------------------------------------------------
@@ -595,6 +601,20 @@ def build_privacy_apartments():
             core
         )
         add_box(
+            f"FloorHandrailRear_F{floor:02d}",
+            (-0.5, walkway_y - 0.8, z0 + 0.55),
+            (overall_w - 1.0, 0.10, 1.10),
+            mat_railing_glass,
+            core
+        )
+        add_box(
+            f"FloorHandrailLeft_F{floor:02d}",
+            (-overall_w / 2.0, walkway_y, z0 + 0.55),
+            (0.10, 1.6, 1.10),
+            mat_railing_glass,
+            core
+        )
+        add_box(
             f"StairFloorLanding_{floor:02d}",
             (overall_w / 2.0 + 1.3, walkway_y, z0 - 0.10),
             (3.0, 1.6, 0.20),
@@ -605,11 +625,18 @@ def build_privacy_apartments():
             f"StairHandrailFloor_F{floor:02d}",
             (overall_w / 2.0 + 2.8, walkway_y, z0 + 0.55),
             (0.10, 1.6, 1.10),
-            mat_metal,
+            mat_railing_glass,
             core
         )
 
         if floor == FLOORS - 1:
+            add_box(
+                "StairHandrailTopEnd",
+                (stair_x_a, stair_near_y, z0 + 0.55),
+                (1.3, 0.10, 1.10),
+                mat_railing_glass,
+                core
+            )
             continue
 
         for step in range(steps_per_flight):
@@ -650,7 +677,7 @@ def build_privacy_apartments():
                 f"StairHandrailOut{side}_F{floor:02d}",
                 (rail_x, out_rail_y, out_rail_z),
                 (0.10, flight_length, 1.10),
-                mat_metal,
+                mat_railing_glass,
                 core,
                 rotation_euler=(-flight_angle, 0.0, 0.0)
             )
@@ -674,7 +701,7 @@ def build_privacy_apartments():
                 half_z + 0.55,
             ),
             (2.8, 0.10, 1.10),
-            mat_metal,
+            mat_railing_glass,
             core
         )
 
@@ -711,7 +738,7 @@ def build_privacy_apartments():
                 f"StairHandrailBack{side}_F{floor:02d}",
                 (rail_x, back_rail_y, back_rail_z),
                 (0.10, flight_length, 1.10),
-                mat_metal,
+                mat_railing_glass,
                 core,
                 rotation_euler=(flight_angle, 0.0, 0.0)
             )
