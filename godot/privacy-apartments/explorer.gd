@@ -55,15 +55,29 @@ func _toggle_interactable() -> void:
 	var node: Node = get_world_3d().direct_space_state.intersect_ray(query).get("collider")
 	while node:
 		var object_name := str(node.name)
-		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_")):
+		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_") or object_name.begins_with("Louver_")):
 			break
 		node = node.get_parent()
 	if not node:
 		return
 	var object := node as Node3D
+	if str(object.name).begins_with("Louver_"):
+		_toggle_blinds(object)
+		return
 	var closed_y: float = object.get_meta("closed_y", object.rotation.y)
 	var opening: bool = not object.get_meta("open", false)
 	var direction := -1.0 if str(object.name).ends_with("_Right") else 1.0
 	object.set_meta("closed_y", closed_y)
 	object.set_meta("open", opening)
 	object.create_tween().tween_property(object, "rotation:y", closed_y + (direction * PI / 2.0 if opening else 0.0), 0.25)
+
+func _toggle_blinds(hit_blind: Node3D) -> void:
+	var prefix := str(hit_blind.name)
+	prefix = prefix.substr(0, prefix.rfind("_"))
+	var opening: bool = not hit_blind.get_meta("open", false)
+	for node in apartments.get_children():
+		if node is MeshInstance3D and str(node.name).begins_with(prefix + "_"):
+			var closed_y: float = node.get_meta("closed_y", node.position.y)
+			node.set_meta("closed_y", closed_y)
+			node.set_meta("open", opening)
+			node.create_tween().tween_property(node, "position:y", closed_y + (1.4 if opening else 0.0), 0.25)
