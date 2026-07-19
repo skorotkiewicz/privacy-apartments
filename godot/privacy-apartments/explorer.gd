@@ -35,7 +35,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	var use_pressed := Input.is_physical_key_pressed(KEY_E)
 	if use_pressed and not use_was_pressed:
-		_toggle_door()
+		_toggle_interactable()
 	use_was_pressed = use_pressed
 
 	if not is_on_floor():
@@ -49,19 +49,21 @@ func _physics_process(delta: float) -> void:
 	velocity.z = direction.z * speed
 	move_and_slide()
 
-func _toggle_door() -> void:
+func _toggle_interactable() -> void:
 	var query := PhysicsRayQueryParameters3D.create(camera.global_position, camera.global_position - camera.global_transform.basis.z * 4.0)
 	query.exclude = [get_rid()]
 	var node: Node = get_world_3d().direct_space_state.intersect_ray(query).get("collider")
 	while node:
-		if node is MeshInstance3D and str(node.name).begins_with("EntranceDoor_"):
+		var object_name := str(node.name)
+		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_")):
 			break
 		node = node.get_parent()
 	if not node:
 		return
-	var door := node as Node3D
-	var closed_y: float = door.get_meta("closed_y", door.rotation.y)
-	var opening: bool = not door.get_meta("open", false)
-	door.set_meta("closed_y", closed_y)
-	door.set_meta("open", opening)
-	door.create_tween().tween_property(door, "rotation:y", closed_y + (PI / 2.0 if opening else 0.0), 0.25)
+	var object := node as Node3D
+	var closed_y: float = object.get_meta("closed_y", object.rotation.y)
+	var opening: bool = not object.get_meta("open", false)
+	var direction := -1.0 if str(object.name).ends_with("_Right") else 1.0
+	object.set_meta("closed_y", closed_y)
+	object.set_meta("open", opening)
+	object.create_tween().tween_property(object, "rotation:y", closed_y + (direction * PI / 2.0 if opening else 0.0), 0.25)

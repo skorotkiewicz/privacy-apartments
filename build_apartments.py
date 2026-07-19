@@ -483,13 +483,21 @@ def build_privacy_apartments():
             # FROSTED PRIVACY GLASS
             # ----------------------------------------------------
 
-            add_box(
-                f"PrivacyGlass_F{f:02d}_U{u:02d}",
-                (unit_x, glass_y, z0 + SILL_H + glass_h / 2.0),
-                (window_w, 0.06, glass_h),
-                mat_glass,
-                glazing
-            )
+            window_panel_w = window_w / 2.0 - 0.03
+            for side, hinge_x, direction in (
+                ("Left", unit_x - window_w / 2.0, 1.0),
+                ("Right", unit_x + window_w / 2.0, -1.0),
+            ):
+                window = add_box(
+                    f"OpenableWindow_F{f:02d}_U{u:02d}_{side}",
+                    (hinge_x, glass_y, z0 + SILL_H + glass_h / 2.0),
+                    (window_panel_w, 0.06, glass_h),
+                    mat_glass,
+                    glazing
+                )
+                # Move panel geometry away from its hinge origin.
+                for vertex in window.data.vertices:
+                    vertex.co.x += 0.5 * direction
 
             # ----------------------------------------------------
             # WINDOW EYEBROW / HORIZONTAL PRIVACY HOOD
