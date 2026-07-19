@@ -601,6 +601,13 @@ def build_privacy_apartments():
             mat_slab,
             core
         )
+        add_box(
+            f"StairHandrailFloor_F{floor:02d}",
+            (overall_w / 2.0 + 2.8, walkway_y, z0 + 0.55),
+            (0.10, 1.6, 1.10),
+            mat_metal,
+            core
+        )
 
         if floor == FLOORS - 1:
             continue
@@ -635,6 +642,18 @@ def build_privacy_apartments():
             core,
             rotation_euler=(-flight_angle, 0.0, 0.0)
         )
+        rail_offset = 0.61
+        out_rail_y = stair_near_y - flight_run / 2.0 + math.sin(flight_angle) * rail_offset
+        out_rail_z = z0 + FLOOR_H / 4.0 + math.cos(flight_angle) * rail_offset
+        for side, rail_x in (("Outer", stair_x_a - 0.65), ("Inner", stair_x_a + 0.65)):
+            add_box(
+                f"StairHandrailOut{side}_F{floor:02d}",
+                (rail_x, out_rail_y, out_rail_z),
+                (0.10, flight_length, 1.10),
+                mat_metal,
+                core,
+                rotation_euler=(-flight_angle, 0.0, 0.0)
+            )
         far_y = stair_near_y - steps_per_flight * stair_tread
         add_box(
             f"StairHalfLanding_F{floor:02d}",
@@ -645,6 +664,17 @@ def build_privacy_apartments():
             ),
             (2.8, 1.1, 0.20),
             mat_slab,
+            core
+        )
+        add_box(
+            f"StairHandrailHalf_F{floor:02d}",
+            (
+                (stair_x_a + stair_x_b) / 2.0,
+                far_y - 0.85,
+                half_z + 0.55,
+            ),
+            (2.8, 0.10, 1.10),
+            mat_metal,
             core
         )
 
@@ -674,6 +704,17 @@ def build_privacy_apartments():
             core,
             rotation_euler=(flight_angle, 0.0, 0.0)
         )
+        back_rail_y = far_y + flight_run / 2.0 - math.sin(flight_angle) * rail_offset
+        back_rail_z = half_z + FLOOR_H / 4.0 + math.cos(flight_angle) * rail_offset
+        for side, rail_x in (("Inner", stair_x_b - 0.65), ("Outer", stair_x_b + 0.65)):
+            add_box(
+                f"StairHandrailBack{side}_F{floor:02d}",
+                (rail_x, back_rail_y, back_rail_z),
+                (0.10, flight_length, 1.10),
+                mat_metal,
+                core,
+                rotation_euler=(flight_angle, 0.0, 0.0)
+            )
 
     # ------------------------------------------------------------
     # ROOF PARAPET
