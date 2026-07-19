@@ -6,6 +6,8 @@ extends CharacterBody3D
 @onready var camera: Camera3D = $Camera3D
 @onready var apartments: Node3D = $"../Apartments"
 
+var use_was_pressed := false
+
 func _ready() -> void:
 	camera.make_current()
 	look_at(Vector3(0, global_position.y, 0))
@@ -27,6 +29,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
+	var use_pressed := Input.is_physical_key_pressed(KEY_E)
+	if use_pressed and not use_was_pressed:
+		_toggle_door()
+	use_was_pressed = use_pressed
+
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	var right := camera.global_transform.basis.x
@@ -37,3 +44,20 @@ func _physics_process(delta: float) -> void:
 	velocity.x = direction.x * speed
 	velocity.z = direction.z * speed
 	move_and_slide()
+
+func _toggle_door() -> void:
+	var query := PhysicsRayQueryParameters3D.create(camera.global_position, camera.global_position - camera.global_transform.basis.z * 4.0)
+	query.exclude = [get_rid()]
+	var node: Node = get_world_3d().direct_space_state.intersect_ray(query).get("collider")
+	while node:
+		if node is MeshInstance3D and str(node.name).begins_with("EntranceDoor_"):
+			break
+		node = node.get_parent()
+	if not node:
+		return
+	var door := node as Node3D
+	var closed_y: float = door.get_meta("closed_y", door.rotation.y)
+	var opening: bool = not door.get_meta("open", false)
+	door.set_meta("closed_y", closed_y)
+	door.set_meta("open", opening)
+	door.create_tween().tween_property(door, "rotation:y", closed_y + (PI / 2.0 if opening else 0.0), 0.25)

@@ -270,12 +270,6 @@ def build_privacy_apartments():
         roughness=0.62
     )
 
-    mat_core = make_material(
-        "CoreWall",
-        (0.30, 0.31, 0.33, 1.0),
-        roughness=0.82
-    )
-
     # ------------------------------------------------------------
     # OVERALL DIMENSIONS
     # ------------------------------------------------------------
@@ -402,23 +396,45 @@ def build_privacy_apartments():
             # REAR WALL + PRIVATE DOOR
             # ----------------------------------------------------
 
+            door_w = 1.15
+            door_h = 2.2
+            rear_y = -outer_y + WALL_T / 2.0
+            side_w = (UNIT_W - door_w) / 2.0
+
+            for side, offset in (
+                ("Left", -(door_w + side_w) / 2.0),
+                ("Right", (door_w + side_w) / 2.0),
+            ):
+                add_box(
+                    f"RearWall{side}_F{f:02d}_U{u:02d}",
+                    (unit_x + offset, rear_y, z_center),
+                    (side_w, WALL_T, interior_h),
+                    mat_concrete,
+                    structure
+                )
+
             add_box(
-                f"RearWall_F{f:02d}_U{u:02d}",
-                (unit_x, -outer_y + WALL_T / 2.0, z_center),
-                (UNIT_W, WALL_T, interior_h),
+                f"RearWallHeader_F{f:02d}_U{u:02d}",
+                (
+                    unit_x,
+                    rear_y,
+                    z0 + door_h + (interior_h - door_h) / 2.0,
+                ),
+                (door_w, WALL_T, interior_h - door_h),
                 mat_concrete,
                 structure
             )
 
-            door_h = 2.2
-
-            add_box(
+            door = add_box(
                 f"EntranceDoor_F{f:02d}_U{u:02d}",
-                (unit_x, -outer_y - 0.04, z0 + door_h / 2.0),
-                (1.15, 0.12, door_h),
+                (unit_x - door_w / 2.0, rear_y, z0 + door_h / 2.0),
+                (door_w, 0.12, door_h),
                 mat_metal,
                 structure
             )
+            # Hinge at local X=0; the panel extends right from the origin.
+            for vertex in door.data.vertices:
+                vertex.co.x += 0.5
 
             # ----------------------------------------------------
             # FRONT FACADE OPAQUE WINDOW REVEAL
@@ -550,33 +566,78 @@ def build_privacy_apartments():
                     )
 
     # ------------------------------------------------------------
-    # OPAQUE PRIVATE CIRCULATION CORE
+    # REAR WALKWAYS + SWITCHBACK STAIR
     # ------------------------------------------------------------
 
-    core_w = min(14.0, overall_w * 0.40)
-    core_d = 5.5
+    walkway_y = -outer_y - 0.8
+    stair_x_a = overall_w / 2.0 + 0.6
+    stair_x_b = overall_w / 2.0 + 2.0
+    stair_near_y = walkway_y - 0.6
+    stair_tread = 0.5
+    steps_per_flight = 8
+    step_rise = FLOOR_H / (steps_per_flight * 2)
 
-    core_base = -SLAB_T
-    core_top = building_h + PARAPET_H
-    core_h = core_top - core_base
+    for floor in range(FLOORS):
+        z0 = floor * FLOOR_H
+        add_box(
+            f"RearWalkway_{floor:02d}",
+            (0.0, walkway_y, z0 - 0.10),
+            (overall_w, 1.6, 0.20),
+            mat_slab,
+            core
+        )
+        add_box(
+            f"StairFloorLanding_{floor:02d}",
+            (overall_w / 2.0 + 1.3, walkway_y, z0 - 0.10),
+            (3.0, 1.6, 0.20),
+            mat_slab,
+            core
+        )
 
-    core_y = -outer_y - core_d / 2.0 - 1.2
+        if floor == FLOORS - 1:
+            continue
 
-    add_box(
-        "PrivateCirculationCore",
-        (0.0, core_y, core_base + core_h / 2.0),
-        (core_w, core_d, core_h),
-        mat_core,
-        core
-    )
+        for step in range(steps_per_flight):
+            top = z0 + (step + 1) * step_rise
+            add_box(
+                f"StairOut_F{floor:02d}_{step:02d}",
+                (
+                    stair_x_a,
+                    stair_near_y - (step + 0.5) * stair_tread,
+                    z0 + (top - z0) / 2.0,
+                ),
+                (1.2, stair_tread, top - z0),
+                mat_concrete,
+                core
+            )
 
-    add_box(
-        "CoreCanopy",
-        (0.0, core_y + core_d / 2.0 + 1.1, 3.2),
-        (core_w + 2.0, 2.6, 0.25),
-        mat_metal,
-        core
-    )
+        half_z = z0 + FLOOR_H / 2.0
+        far_y = stair_near_y - steps_per_flight * stair_tread
+        add_box(
+            f"StairHalfLanding_F{floor:02d}",
+            (
+                (stair_x_a + stair_x_b) / 2.0,
+                far_y - 0.3,
+                half_z - 0.10,
+            ),
+            (2.8, 1.1, 0.20),
+            mat_slab,
+            core
+        )
+
+        for step in range(steps_per_flight):
+            top = half_z + (step + 1) * step_rise
+            add_box(
+                f"StairBack_F{floor:02d}_{step:02d}",
+                (
+                    stair_x_b,
+                    far_y + (step + 0.5) * stair_tread,
+                    half_z + (top - half_z) / 2.0,
+                ),
+                (1.2, stair_tread, top - half_z),
+                mat_concrete,
+                core
+            )
 
     # ------------------------------------------------------------
     # ROOF PARAPET

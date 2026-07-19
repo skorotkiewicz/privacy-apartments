@@ -18,7 +18,7 @@ tonemap_mode = 2
 [node name="ApartmentExplorer" type="Node3D" unique_id=350391128]
 
 [node name="Player" type="CharacterBody3D" parent="." unique_id=677719311]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.84, 0, -32.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 14)
 script = ExtResource("2_controller")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=302888302]
@@ -40,7 +40,7 @@ light_energy = 1.5
 shadow_enabled = true
 
 [node name="Sun2" type="DirectionalLight3D" parent="." unique_id=199242426]
-transform = Transform3D(-0.7465188, 0.66036963, 0.081375055, -0.033034727, -0.15893634, 0.98673606, 0.6645438, 0.7339287, 0.14046407, -10.161776, 29.429314, 59.902534)
+transform = Transform3D(-0.7304847, 0.6776568, 0.084696345, -0.587485, -0.68677855, 0.42801523, 0.34821513, 0.26290065, 0.89979416, -3.6293507, 13.670692, 26.220695)
 light_energy = 1.5
 shadow_enabled = true
 
@@ -51,4 +51,17 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
-text = "WASD: walk  |  Space: jump  |  Mouse: look  |  Esc: release mouse"
+text = "WASD: walk  |  Space: jump  |  E: open/close door  |  Mouse: look  |  Esc: release mouse"
+
+[node name="Crosshair" type="Label" parent="." unique_id=1949088582]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -4.0
+offset_top = -10.0
+offset_right = 4.0
+offset_bottom = 10.0
+text = "+"
+horizontal_alignment = 1
