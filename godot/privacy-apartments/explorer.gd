@@ -13,7 +13,11 @@ func _ready() -> void:
 	look_at(Vector3(0, global_position.y, 0))
 	for node in apartments.get_children():
 		if node is MeshInstance3D:
+			if str(node.name).begins_with("StairOut_") or str(node.name).begins_with("StairBack_"):
+				continue
 			node.create_trimesh_collision()
+			if str(node.name).begins_with("StairRampCollision_"):
+				node.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:

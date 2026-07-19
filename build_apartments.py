@@ -612,6 +612,21 @@ def build_privacy_apartments():
             )
 
         half_z = z0 + FLOOR_H / 2.0
+        flight_run = steps_per_flight * stair_tread
+        flight_length = math.hypot(flight_run, FLOOR_H / 2.0)
+        flight_angle = math.atan2(FLOOR_H / 2.0, flight_run)
+        add_box(
+            f"StairRampCollision_Out_F{floor:02d}",
+            (
+                stair_x_a,
+                stair_near_y - flight_run / 2.0,
+                z0 + FLOOR_H / 4.0,
+            ),
+            (1.2, flight_length, 0.12),
+            mat_concrete,
+            core,
+            rotation_euler=(-flight_angle, 0.0, 0.0)
+        )
         far_y = stair_near_y - steps_per_flight * stair_tread
         add_box(
             f"StairHalfLanding_F{floor:02d}",
@@ -638,6 +653,19 @@ def build_privacy_apartments():
                 mat_concrete,
                 core
             )
+
+        add_box(
+            f"StairRampCollision_Back_F{floor:02d}",
+            (
+                stair_x_b,
+                far_y + flight_run / 2.0,
+                half_z + FLOOR_H / 4.0,
+            ),
+            (1.2, flight_length, 0.12),
+            mat_concrete,
+            core,
+            rotation_euler=(flight_angle, 0.0, 0.0)
+        )
 
     # ------------------------------------------------------------
     # ROOF PARAPET
