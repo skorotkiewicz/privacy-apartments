@@ -69,6 +69,18 @@ LOUVER_COUNT = 9
 
 
 # ============================================================
+# INTERIOR ROOM SETTINGS
+# ============================================================
+
+# If True, every room gets a real Blender point light.
+# This looks nicer but can be heavy with many apartments.
+USE_ROOM_LIGHTS = False
+
+# Point light strength.
+ROOM_LIGHT_ENERGY = 30.0
+
+
+# ============================================================
 # HELPER FUNCTIONS
 # ============================================================
 
@@ -242,6 +254,505 @@ def set_hinge_geometry(obj, direction=1.0):
 
     obj.data.update()
     bake_scale(obj)
+
+
+def make_emission_material(name, rgba, strength=5.0):
+    """Create or reuse a Principled BSDF material with emission."""
+
+    if len(rgba) == 3:
+        rgba = (rgba[0], rgba[1], rgba[2], 1.0)
+
+    mat = make_material(name, rgba)
+
+    node_tree = mat.node_tree
+    bsdf = next(
+        (n for n in node_tree.nodes if n.type == 'BSDF_PRINCIPLED'),
+        None
+    )
+
+    if bsdf is not None:
+        # Blender 4.x usually uses "Emission Color".
+        if "Emission Color" in bsdf.inputs:
+            bsdf.inputs["Emission Color"].default_value = rgba
+
+            if "Emission Strength" in bsdf.inputs:
+                bsdf.inputs["Emission Strength"].default_value = strength
+
+        # Older Blender versions may use "Emission".
+        elif "Emission" in bsdf.inputs:
+            bsdf.inputs["Emission"].default_value = rgba
+
+            if "Emission Strength" in bsdf.inputs:
+                bsdf.inputs["Emission Strength"].default_value = strength
+
+    return mat
+
+
+def add_point_light(name, location, energy, collection):
+    """Add a point light object."""
+
+    light_data = bpy.data.lights.new(name, type='POINT')
+    light_data.energy = energy
+
+    try:
+        light_data.shadow_soft_size = 0.35
+    except Exception:
+        pass
+
+    light_obj = bpy.data.objects.new(name, light_data)
+    light_obj.location = location
+
+    collection.objects.link(light_obj)
+
+    return light_obj
+
+
+def add_nice_room(
+    unit_x,
+    z0,
+    unit_w,
+    unit_d,
+    interior_h,
+    outer_y,
+    wall_t,
+    door_w,
+    f,
+    u,
+    add_lights=True,
+    light_energy=30.0
+):
+    """
+    Build one nice room and place it inside one apartment.
+    The same room layout is copied to every apartment by calling this
+    function for each unit.
+    """
+
+    room_col = get_collection("InteriorRooms")
+    light_col = get_collection("InteriorLights")
+
+    tag = f"F{f:02d}_U{u:02d}"
+
+    floor_top = z0 + 0.02
+    ceiling_z = z0 + interior_h
+
+    left_x = unit_x - unit_w / 2.0 + 0.08
+    right_x = unit_x + unit_w / 2.0 - 0.08
+
+    rear_y = -outer_y + wall_t + 0.08
+    front_y = outer_y - 1.05
+    center_y = (rear_y + front_y) / 2.0
+
+    # ------------------------------------------------------------
+    # ROOM MATERIALS
+    # ------------------------------------------------------------
+
+    mat_room_floor = make_material(
+        "RoomWoodFloor",
+        (0.42, 0.30, 0.20, 1.0),
+        roughness=0.55
+    )
+
+    mat_ceiling = make_material(
+        "RoomCeiling",
+        (0.92, 0.92, 0.90, 1.0),
+        roughness=0.9
+    )
+
+    mat_rug = make_material(
+        "Rug",
+        (0.35, 0.45, 0.55, 1.0),
+        roughness=0.95
+    )
+
+    mat_bed_frame = make_material(
+        "BedFrame",
+        (0.36, 0.26, 0.18, 1.0),
+        roughness=0.6
+    )
+
+    mat_mattress = make_material(
+        "Mattress",
+        (0.85, 0.85, 0.82, 1.0),
+        roughness=0.85
+    )
+
+    mat_blanket = make_material(
+        "Blanket",
+        (0.30, 0.42, 0.50, 1.0),
+        roughness=0.9
+    )
+
+    mat_pillow = make_material(
+        "Pillow",
+        (0.92, 0.92, 0.90, 1.0),
+        roughness=0.9
+    )
+
+    mat_wardrobe = make_material(
+        "Wardrobe",
+        (0.75, 0.72, 0.66, 1.0),
+        roughness=0.7
+    )
+
+    mat_desk = make_material(
+        "DeskWood",
+        (0.50, 0.38, 0.26, 1.0),
+        roughness=0.6
+    )
+
+    mat_chair = make_material(
+        "Chair",
+        (0.25, 0.25, 0.28, 1.0),
+        roughness=0.7
+    )
+
+    mat_plant_pot = make_material(
+        "PlantPot",
+        (0.60, 0.60, 0.58, 1.0),
+        roughness=0.8
+    )
+
+    mat_plant = make_material(
+        "Plant",
+        (0.18, 0.42, 0.18, 1.0),
+        roughness=0.9
+    )
+
+    mat_switch = make_material(
+        "SwitchWhite",
+        (0.90, 0.90, 0.88, 1.0),
+        roughness=0.4
+    )
+
+    mat_switch_button = make_material(
+        "SwitchButton",
+        (0.80, 0.80, 0.78, 1.0),
+        roughness=0.3
+    )
+
+    mat_lamp_body = make_material(
+        "LampBody",
+        (0.20, 0.20, 0.22, 1.0),
+        metallic=0.7,
+        roughness=0.35
+    )
+
+    mat_lamp_emit = make_emission_material(
+        "LampEmit",
+        (1.0, 0.92, 0.78, 1.0),
+        6.0
+    )
+
+    # ------------------------------------------------------------
+    # ROOM SHELL
+    # ------------------------------------------------------------
+
+    add_box(
+        f"RoomFloor_{tag}",
+        (unit_x, 0.0, z0 + 0.01),
+        (unit_w - 0.16, unit_d - 0.35, 0.02),
+        mat_room_floor,
+        room_col
+    )
+
+    add_box(
+        f"RoomCeiling_{tag}",
+        (unit_x, 0.0, ceiling_z - 0.01),
+        (unit_w - 0.16, unit_d - 0.35, 0.02),
+        mat_ceiling,
+        room_col
+    )
+
+    add_box(
+        f"Rug_{tag}",
+        (unit_x, center_y + 0.45, floor_top + 0.01),
+        (2.8, 1.9, 0.02),
+        mat_rug,
+        room_col
+    )
+
+    # ------------------------------------------------------------
+    # BED
+    # ------------------------------------------------------------
+
+    bed_w = 1.6
+    bed_d = 2.1
+    bed_base_h = 0.26
+    mattress_h = 0.18
+
+    bed_x = left_x + bed_w / 2.0 + 0.08
+    bed_y = rear_y + bed_d / 2.0 + 0.05
+
+    add_box(
+        f"BedBase_{tag}",
+        (bed_x, bed_y, floor_top + bed_base_h / 2.0),
+        (bed_w, bed_d, bed_base_h),
+        mat_bed_frame,
+        room_col
+    )
+
+    add_box(
+        f"BedHeadboard_{tag}",
+        (bed_x, rear_y + 0.05, floor_top + 0.55),
+        (bed_w, 0.08, 0.70),
+        mat_bed_frame,
+        room_col
+    )
+
+    add_box(
+        f"Mattress_{tag}",
+        (bed_x, bed_y, floor_top + bed_base_h + mattress_h / 2.0),
+        (bed_w - 0.08, bed_d - 0.08, mattress_h),
+        mat_mattress,
+        room_col
+    )
+
+    pillow_z = floor_top + bed_base_h + mattress_h + 0.06
+
+    add_box(
+        f"PillowLeft_{tag}",
+        (bed_x - 0.35, bed_y - bed_d / 2.0 + 0.32, pillow_z),
+        (0.55, 0.32, 0.12),
+        mat_pillow,
+        room_col
+    )
+
+    add_box(
+        f"PillowRight_{tag}",
+        (bed_x + 0.35, bed_y - bed_d / 2.0 + 0.32, pillow_z),
+        (0.55, 0.32, 0.12),
+        mat_pillow,
+        room_col
+    )
+
+    add_box(
+        f"Blanket_{tag}",
+        (bed_x, bed_y + 0.25, floor_top + bed_base_h + mattress_h + 0.025),
+        (bed_w - 0.12, bed_d - 1.10, 0.05),
+        mat_blanket,
+        room_col
+    )
+
+    # ------------------------------------------------------------
+    # NIGHTSTAND
+    # ------------------------------------------------------------
+
+    nightstand_x = bed_x + bed_w / 2.0 + 0.25
+    nightstand_y = rear_y + 0.30
+
+    add_box(
+        f"Nightstand_{tag}",
+        (nightstand_x, nightstand_y, floor_top + 0.25),
+        (0.45, 0.40, 0.50),
+        mat_bed_frame,
+        room_col
+    )
+
+    # ------------------------------------------------------------
+    # WARDROBE
+    # ------------------------------------------------------------
+
+    wardrobe_w = 1.2
+    wardrobe_d = 0.6
+    wardrobe_h = 2.2
+
+    wardrobe_x = right_x - wardrobe_w / 2.0 - 0.08
+    wardrobe_y = rear_y + wardrobe_d / 2.0 + 0.05
+
+    add_box(
+        f"Wardrobe_{tag}",
+        (wardrobe_x, wardrobe_y, floor_top + wardrobe_h / 2.0),
+        (wardrobe_w, wardrobe_d, wardrobe_h),
+        mat_wardrobe,
+        room_col
+    )
+
+    # ------------------------------------------------------------
+    # DESK + CHAIR
+    # ------------------------------------------------------------
+
+    desk_w = 1.35
+    desk_d = 0.6
+    desk_h = 0.74
+
+    desk_x = right_x - desk_w / 2.0 - 0.25
+    desk_y = front_y - desk_d / 2.0 - 0.15
+
+    add_box(
+        f"DeskTop_{tag}",
+        (desk_x, desk_y, floor_top + desk_h),
+        (desk_w, desk_d, 0.05),
+        mat_desk,
+        room_col
+    )
+
+    add_box(
+        f"DeskLegLeft_{tag}",
+        (desk_x - desk_w / 2.0 + 0.04, desk_y, floor_top + desk_h / 2.0),
+        (0.06, desk_d - 0.08, desk_h),
+        mat_desk,
+        room_col
+    )
+
+    add_box(
+        f"DeskLegRight_{tag}",
+        (desk_x + desk_w / 2.0 - 0.04, desk_y, floor_top + desk_h / 2.0),
+        (0.06, desk_d - 0.08, desk_h),
+        mat_desk,
+        room_col
+    )
+
+    chair_x = desk_x
+    chair_y = desk_y - 0.55
+    chair_seat_h = 0.45
+
+    add_box(
+        f"ChairSeat_{tag}",
+        (chair_x, chair_y, floor_top + chair_seat_h),
+        (0.45, 0.45, 0.06),
+        mat_chair,
+        room_col
+    )
+
+    add_box(
+        f"ChairSupport_{tag}",
+        (chair_x, chair_y, floor_top + chair_seat_h / 2.0),
+        (0.10, 0.10, chair_seat_h),
+        mat_chair,
+        room_col
+    )
+
+    add_box(
+        f"ChairBack_{tag}",
+        (chair_x, chair_y - 0.21, floor_top + chair_seat_h + 0.27),
+        (0.45, 0.06, 0.55),
+        mat_chair,
+        room_col
+    )
+
+    # ------------------------------------------------------------
+    # PLANT
+    # ------------------------------------------------------------
+
+    plant_x = left_x + 0.35
+    plant_y = front_y - 0.35
+
+    add_box(
+        f"PlantPot_{tag}",
+        (plant_x, plant_y, floor_top + 0.175),
+        (0.32, 0.32, 0.35),
+        mat_plant_pot,
+        room_col
+    )
+
+    add_box(
+        f"Plant_{tag}",
+        (plant_x, plant_y, floor_top + 0.35 + 0.275),
+        (0.45, 0.45, 0.55),
+        mat_plant,
+        room_col
+    )
+
+    # ------------------------------------------------------------
+    # CEILING LAMP
+    # ------------------------------------------------------------
+
+    lamp_name = f"Lamp_{tag}"
+    bulb_name = f"LampBulb_{tag}"
+    light_name = f"LampLight_{tag}"
+
+    lamp_x = unit_x
+    lamp_y = center_y + 0.20
+
+    lamp_shade = add_box(
+        f"LampShade_{tag}",
+        (lamp_x, lamp_y, ceiling_z - 0.34),
+        (0.55, 0.55, 0.16),
+        mat_lamp_body,
+        room_col
+    )
+
+    lamp_shade["asset_type"] = "lamp"
+    lamp_shade["apartment"] = tag
+
+    add_box(
+        f"LampMount_{tag}",
+        (lamp_x, lamp_y, ceiling_z - 0.02),
+        (0.14, 0.14, 0.04),
+        mat_lamp_body,
+        room_col
+    )
+
+    add_box(
+        f"LampRod_{tag}",
+        (lamp_x, lamp_y, ceiling_z - 0.16),
+        (0.03, 0.03, 0.24),
+        mat_lamp_body,
+        room_col
+    )
+
+    bulb = add_box(
+        bulb_name,
+        (lamp_x, lamp_y, ceiling_z - 0.425),
+        (0.45, 0.45, 0.03),
+        mat_lamp_emit,
+        room_col
+    )
+
+    bulb["asset_type"] = "lamp_bulb"
+    bulb["apartment"] = tag
+
+    # ------------------------------------------------------------
+    # REAL POINT LIGHT
+    # ------------------------------------------------------------
+
+    controlled_name = bulb_name
+
+    if add_lights:
+        light = add_point_light(
+            light_name,
+            (lamp_x, lamp_y, ceiling_z - 0.55),
+            light_energy,
+            light_col
+        )
+
+        light["asset_type"] = "light"
+        light["apartment"] = tag
+        light["controlled_by"] = f"LightSwitch_{tag}"
+
+        controlled_name = light_name
+
+    # ------------------------------------------------------------
+    # LIGHT SWITCH NEAR DOOR
+    # ------------------------------------------------------------
+
+    switch_x = unit_x + door_w / 2.0 + 0.18
+    switch_y = -outer_y + wall_t + 0.015
+    switch_z = z0 + 1.20
+
+    switch = add_box(
+        f"LightSwitch_{tag}",
+        (switch_x, switch_y, switch_z),
+        (0.09, 0.025, 0.14),
+        mat_switch,
+        room_col
+    )
+
+    switch_button = add_box(
+        f"LightSwitchButton_{tag}",
+        (switch_x, switch_y + 0.013, switch_z),
+        (0.035, 0.012, 0.05),
+        mat_switch_button,
+        room_col
+    )
+
+    switch["asset_type"] = "light_switch"
+    switch["apartment"] = tag
+    switch["controls"] = controlled_name
+
+    switch_button["asset_type"] = "light_switch_button"
+    switch_button["apartment"] = tag
+    switch_button["controls"] = controlled_name
 
 
 # ============================================================
@@ -537,7 +1048,7 @@ def build_privacy_apartments():
                 )
 
             # ----------------------------------------------------
-            # FROSTED PRIVACY GLASS
+            # OPENABLE FROSTED PRIVACY WINDOWS
             # ----------------------------------------------------
 
             window_panel_w = window_w / 2.0 - 0.03
@@ -554,7 +1065,6 @@ def build_privacy_apartments():
                     glazing
                 )
 
-                # Move panel geometry away from its hinge origin.
                 set_hinge_geometry(window, direction)
 
                 window["asset_type"] = "window"
@@ -634,20 +1144,50 @@ def build_privacy_apartments():
                         rotation_euler=rot
                     )
 
+            # ----------------------------------------------------
+            # NICE INTERIOR ROOM copied to every apartment
+            # ----------------------------------------------------
+
+            add_nice_room(
+                unit_x=unit_x,
+                z0=z0,
+                unit_w=UNIT_W,
+                unit_d=UNIT_D,
+                interior_h=interior_h,
+                outer_y=outer_y,
+                wall_t=WALL_T,
+                door_w=door_w,
+                f=f,
+                u=u,
+                add_lights=USE_ROOM_LIGHTS,
+                light_energy=ROOM_LIGHT_ENERGY
+            )
+
     # ------------------------------------------------------------
     # REAR WALKWAYS + SWITCHBACK STAIR
     # ------------------------------------------------------------
 
     walkway_y = -outer_y - 0.8
+    walkway_back_y = walkway_y - 0.8
+
     stair_x_a = overall_w / 2.0 + 0.6
     stair_x_b = overall_w / 2.0 + 2.0
+
     stair_near_y = walkway_y - 0.6
+
     stair_tread = 0.5
     steps_per_flight = 8
     step_rise = FLOOR_H / (steps_per_flight * 2.0)
 
+    flight_run = steps_per_flight * stair_tread
+    flight_length = math.hypot(flight_run, FLOOR_H / 2.0)
+    flight_angle = math.atan2(FLOOR_H / 2.0, flight_run)
+
+    far_y = stair_near_y - flight_run
+
     for floor in range(FLOORS):
         z0 = floor * FLOOR_H
+        half_z = z0 + FLOOR_H / 2.0
 
         add_box(
             f"RearWalkway_{floor:02d}",
@@ -657,13 +1197,20 @@ def build_privacy_apartments():
             core
         )
 
-        # Handrail placement approved in privacy_apartments-new.glb.
-        rear_rail_x = 0.584943 if floor == FLOORS - 1 else -0.03
-        rear_rail_w = 29.348743 if floor == FLOORS - 1 else 28.0
+        # ------------------------------------------------------------
+        # FIXED: rear handrail now adjusts with overall_w.
+        # For top floor it extends over the stair landing side.
+        # ------------------------------------------------------------
+        if floor == FLOORS - 1:
+            rear_rail_w = overall_w + 2.8
+            rear_rail_x = 1.4
+        else:
+            rear_rail_w = overall_w - 0.25
+            rear_rail_x = -0.03
 
         add_box(
             f"FloorHandrailRear_F{floor:02d}",
-            (rear_rail_x, walkway_y - 0.8, z0 + 0.55),
+            (rear_rail_x, walkway_back_y, z0 + 0.55),
             (rear_rail_w, 0.10, 1.10),
             mat_railing_glass,
             core
@@ -680,7 +1227,7 @@ def build_privacy_apartments():
         if floor == 0:
             add_box(
                 "StairHandrailEntrance_F00",
-                (16.171045, walkway_y - 0.8, z0 + 0.55),
+                (stair_x_b + 0.046045, walkway_back_y, z0 + 0.55),
                 (0.10, 1.6, 1.10),
                 mat_railing_glass,
                 core,
@@ -689,7 +1236,7 @@ def build_privacy_apartments():
         else:
             add_box(
                 f"StairHandrailEnd_F{floor:02d}",
-                (15.5623, walkway_y + 0.80928, z0 + 0.55),
+                (stair_x_a + 0.8373, walkway_y + 0.80928, z0 + 0.55),
                 (2.548747, 0.10, 1.10),
                 mat_railing_glass,
                 core
@@ -729,11 +1276,6 @@ def build_privacy_apartments():
                 core
             )
 
-        half_z = z0 + FLOOR_H / 2.0
-        flight_run = steps_per_flight * stair_tread
-        flight_length = math.hypot(flight_run, FLOOR_H / 2.0)
-        flight_angle = math.atan2(FLOOR_H / 2.0, flight_run)
-
         add_box(
             f"StairRampCollision_Out_F{floor:02d}",
             (
@@ -747,26 +1289,36 @@ def build_privacy_apartments():
             rotation_euler=(-flight_angle, 0.0, 0.0)
         )
 
-        out_inner_length = 2.0 if floor == 0 else (4.14653 if floor in (1, 2) else flight_length)
-        out_outer_z = z0 + (1.68705 if floor == 0 else 1.388908)
+        out_outer_z = (
+            z0
+            + FLOOR_H / 4.0
+            + 0.55
+            + (0.31205 if floor == 0 else 0.0)
+        )
 
         add_box(
             f"StairHandrailOutOuter_F{floor:02d}",
-            (stair_x_a - 0.65, -9.37513, out_outer_z),
+            (stair_x_a - 0.65, stair_near_y - 2.47513, out_outer_z),
             (0.10, flight_length, 1.10),
             mat_railing_glass,
             core
         )
 
+        out_inner_length = (
+            2.0
+            if floor == 0
+            else (4.14653 if floor in (1, 2) else flight_length)
+        )
+
+        out_inner_z = z0 + FLOOR_H / 4.0 + 0.55 + 0.013908
+
         add_box(
             f"StairHandrailOutInner_F{floor:02d}",
-            (stair_x_a + 0.65, -8.667388, z0 + 1.388908),
+            (stair_x_a + 0.65, stair_near_y - 1.767388, out_inner_z),
             (0.10, out_inner_length, 1.10),
             mat_railing_glass,
             core
         )
-
-        far_y = stair_near_y - steps_per_flight * stair_tread
 
         add_box(
             f"StairHalfLanding_F{floor:02d}",
@@ -821,10 +1373,11 @@ def build_privacy_apartments():
         )
 
         back_inner_h = 1.092331 if floor == 0 else 1.10
+        back_inner_z = half_z + FLOOR_H / 4.0 + 0.55 + 0.013908
 
         add_box(
             f"StairHandrailBackInner_F{floor:02d}",
-            (stair_x_b - 0.65, -7.96992, z0 + 3.038908),
+            (stair_x_b - 0.65, far_y + 2.93008, back_inner_z),
             (0.10, 2.0, back_inner_h),
             mat_railing_glass,
             core
@@ -832,7 +1385,7 @@ def build_privacy_apartments():
 
         add_box(
             f"StairHandrailBackOuter_F{floor:02d}",
-            (stair_x_b + 0.65, -9.43439, z0 + 3.038908),
+            (stair_x_b + 0.65, far_y + 1.46561, back_inner_z),
             (0.10, flight_length, 1.10),
             mat_railing_glass,
             core
