@@ -33,7 +33,36 @@ func _ready() -> void:
 				light.light_energy = 1.0
 				light.omni_range = 6.0
 				apartments.add_child(light)
+	_add_map_boundaries()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _add_map_boundaries() -> void:
+	var ground := apartments.get_node_or_null("Ground") as MeshInstance3D
+	if not ground:
+		return
+	var mesh_bounds := ground.get_aabb()
+	var bounds := AABB(ground.transform * mesh_bounds.position, Vector3.ZERO)
+	for x in [mesh_bounds.position.x, mesh_bounds.end.x]:
+		for y in [mesh_bounds.position.y, mesh_bounds.end.y]:
+			for z in [mesh_bounds.position.z, mesh_bounds.end.z]:
+				bounds = bounds.expand(ground.transform * Vector3(x, y, z))
+	var height := 4.0
+	var thickness := 1.0
+	_add_boundary("MapBoundaryWest", Vector3(bounds.position.x - thickness / 2.0, bounds.end.y + height / 2.0, bounds.get_center().z), Vector3(thickness, height, bounds.size.z + thickness * 2.0))
+	_add_boundary("MapBoundaryEast", Vector3(bounds.end.x + thickness / 2.0, bounds.end.y + height / 2.0, bounds.get_center().z), Vector3(thickness, height, bounds.size.z + thickness * 2.0))
+	_add_boundary("MapBoundaryNorth", Vector3(bounds.get_center().x, bounds.end.y + height / 2.0, bounds.position.z - thickness / 2.0), Vector3(bounds.size.x + thickness * 2.0, height, thickness))
+	_add_boundary("MapBoundarySouth", Vector3(bounds.get_center().x, bounds.end.y + height / 2.0, bounds.end.z + thickness / 2.0), Vector3(bounds.size.x + thickness * 2.0, height, thickness))
+
+func _add_boundary(name: String, position: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	body.name = name
+	body.position = position
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	apartments.add_child(body)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
