@@ -25,7 +25,7 @@ func _ready() -> void:
 				light.name = str(node.name).replace("LampBulb_", "LampLight_")
 				light.position = node.position
 				light.visible = false
-				light.light_energy = 4.0
+				light.light_energy = 1.0
 				light.omni_range = 6.0
 				apartments.add_child(light)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -67,13 +67,13 @@ func _toggle_interactable() -> void:
 	var node: Node = get_world_3d().direct_space_state.intersect_ray(query).get("collider")
 	while node:
 		var object_name := str(node.name)
-		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_") or object_name.begins_with("Louver_") or object_name.begins_with("LightSwitch")):
+		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_") or object_name.begins_with("Louver_") or object_name.begins_with("LightSwitch") or object_name.begins_with("BlindSwitch_")):
 			break
 		node = node.get_parent()
 	if not node:
 		return
 	var object := node as Node3D
-	if str(object.name).begins_with("Louver_"):
+	if str(object.name).begins_with("Louver_") or str(object.name).begins_with("BlindSwitch_"):
 		_toggle_blinds(object)
 		return
 	if str(object.name).begins_with("LightSwitch"):
@@ -100,8 +100,12 @@ func _toggle_light(light_switch: Node3D) -> void:
 
 func _toggle_blinds(hit_blind: Node3D) -> void:
 	var prefix := str(hit_blind.name)
-	prefix = prefix.substr(0, prefix.rfind("_"))
+	if prefix.begins_with("BlindSwitch_"):
+		prefix = "Louver_" + prefix.trim_prefix("BlindSwitch_")
+	else:
+		prefix = prefix.substr(0, prefix.rfind("_"))
 	var opening: bool = not hit_blind.get_meta("open", false)
+	hit_blind.set_meta("open", opening)
 	for node in apartments.get_children():
 		if node is MeshInstance3D and str(node.name).begins_with(prefix + "_"):
 			var closed_y: float = node.get_meta("closed_y", node.position.y)

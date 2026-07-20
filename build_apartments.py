@@ -757,6 +757,16 @@ def add_nice_room(
     switch_button["apartment"] = tag
     switch_button["controls"] = controlled_name
 
+    blind_switch = add_box(
+        f"BlindSwitch_{tag}",
+        (right_x - 0.28, front_y, switch_z),
+        (0.09, 0.025, 0.14),
+        mat_switch_button,
+        room_col
+    )
+    blind_switch["asset_type"] = "blind_switch"
+    blind_switch["apartment"] = tag
+
 
 # ============================================================
 # MAIN BUILD FUNCTION
