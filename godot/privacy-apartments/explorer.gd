@@ -4,6 +4,7 @@ extends CharacterBody3D
 @export var look_sensitivity := 0.002
 
 @onready var camera: Camera3D = $Camera3D
+@onready var flashlight: SpotLight3D = $Camera3D/Flashlight
 @onready var apartments: Node3D = $"../Apartments"
 
 var use_was_pressed := false
@@ -29,6 +30,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		velocity.y = 4.5
 	elif event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif event is InputEventKey and event.physical_keycode == KEY_F and event.pressed and not event.echo:
+		flashlight.visible = not flashlight.visible
 	elif event is InputEventMouseButton and event.pressed:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -75,8 +78,10 @@ func _toggle_interactable() -> void:
 	object.create_tween().tween_property(object, "rotation:y", closed_y + (direction * PI / 2.0 if opening else 0.0), 0.25)
 
 func _toggle_light(light_switch: Node3D) -> void:
-	var tag := str(light_switch.name).get_slice("_", 1)
-	var controlled_name := str(light_switch.get_meta("controls", "LampLight_" + tag))
+	var switch_name := str(light_switch.name)
+	var tag := switch_name.substr(switch_name.find("_") + 1)
+	var extras: Dictionary = light_switch.get_meta("extras", {})
+	var controlled_name := str(extras.get("controls", "LampLight_" + tag))
 	var light := apartments.get_node_or_null(NodePath(controlled_name))
 	if light:
 		light.visible = not light.visible

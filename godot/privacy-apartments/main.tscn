@@ -29,6 +29,12 @@ shape = SubResource("Capsule_player")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 current = true
 
+[node name="Flashlight" type="SpotLight3D" parent="Player/Camera3D" unique_id=1095231395]
+visible = false
+light_energy = 0.5
+shadow_enabled = true
+spot_range = 10.0
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=380207859]
 environment = SubResource("Environment_main")
 
@@ -52,7 +58,7 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
-text = "WASD: walk  |  Space: jump  |  E: open/close  |  Mouse: look  |  Esc: release mouse"
+text = "WASD: walk  |  Space: jump  |  E: interact  |  F: flashlight  |  Mouse: look  |  Esc: release mouse"
 
 [node name="Crosshair" type="Label" parent="." unique_id=1949088582]
 anchors_preset = 8
