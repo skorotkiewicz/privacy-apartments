@@ -198,6 +198,52 @@ def add_box(name, center, size, material, collection, rotation_euler=None):
     return obj
 
 
+def bake_scale(obj):
+    """
+    Bake object scale into mesh vertices.
+
+    This is useful for doors/windows because Godot rotates them more cleanly
+    when they do not have non-uniform scale.
+    """
+
+    sx, sy, sz = obj.scale
+
+    if (
+        abs(sx - 1.0) < 1e-6 and
+        abs(sy - 1.0) < 1e-6 and
+        abs(sz - 1.0) < 1e-6
+    ):
+        return
+
+    for vertex in obj.data.vertices:
+        vertex.co.x *= sx
+        vertex.co.y *= sy
+        vertex.co.z *= sz
+
+    obj.scale = (1.0, 1.0, 1.0)
+    obj.data.update()
+
+
+def set_hinge_geometry(obj, direction=1.0):
+    """
+    Move panel geometry away from its hinge origin, then bake scale.
+
+    direction = 1.0
+        Panel extends toward +X from the origin.
+        Good for left-hinged panels.
+
+    direction = -1.0
+        Panel extends toward -X from the origin.
+        Good for right-hinged panels.
+    """
+
+    for vertex in obj.data.vertices:
+        vertex.co.x += 0.5 * direction
+
+    obj.data.update()
+    bake_scale(obj)
+
+
 # ============================================================
 # MAIN BUILD FUNCTION
 # ============================================================
@@ -419,18 +465,22 @@ def build_privacy_apartments():
                     structure
                 )
 
-            add_box(
-                f"RearWallHeader_F{f:02d}_U{u:02d}",
-                (
-                    unit_x,
-                    rear_y,
-                    z0 + door_h + (interior_h - door_h) / 2.0,
-                ),
-                (door_w, WALL_T, interior_h - door_h),
-                mat_concrete,
-                structure
-            )
+            rear_header_h = interior_h - door_h
 
+            if rear_header_h > 0.001:
+                add_box(
+                    f"RearWallHeader_F{f:02d}_U{u:02d}",
+                    (
+                        unit_x,
+                        rear_y,
+                        z0 + door_h + rear_header_h / 2.0,
+                    ),
+                    (door_w, WALL_T, rear_header_h),
+                    mat_concrete,
+                    structure
+                )
+
+            # Door hinge is at local X=0; the panel extends right from origin.
             door = add_box(
                 f"EntranceDoor_F{f:02d}_U{u:02d}",
                 (unit_x - door_w / 2.0, rear_y, z0 + door_h / 2.0),
@@ -438,9 +488,10 @@ def build_privacy_apartments():
                 mat_metal,
                 structure
             )
-            # Hinge at local X=0; the panel extends right from the origin.
-            for vertex in door.data.vertices:
-                vertex.co.x += 0.5
+
+            set_hinge_geometry(door, 1.0)
+            door["asset_type"] = "door"
+            door["hinge"] = "left"
 
             # ----------------------------------------------------
             # FRONT FACADE OPAQUE WINDOW REVEAL
@@ -490,6 +541,7 @@ def build_privacy_apartments():
             # ----------------------------------------------------
 
             window_panel_w = window_w / 2.0 - 0.03
+
             for side, hinge_x, direction in (
                 ("Left", unit_x - window_w / 2.0, 1.0),
                 ("Right", unit_x + window_w / 2.0, -1.0),
@@ -501,9 +553,12 @@ def build_privacy_apartments():
                     mat_glass,
                     glazing
                 )
+
                 # Move panel geometry away from its hinge origin.
-                for vertex in window.data.vertices:
-                    vertex.co.x += 0.5 * direction
+                set_hinge_geometry(window, direction)
+
+                window["asset_type"] = "window"
+                window["hinge"] = "left" if direction > 0.0 else "right"
 
             # ----------------------------------------------------
             # WINDOW EYEBROW / HORIZONTAL PRIVACY HOOD
@@ -589,10 +644,11 @@ def build_privacy_apartments():
     stair_near_y = walkway_y - 0.6
     stair_tread = 0.5
     steps_per_flight = 8
-    step_rise = FLOOR_H / (steps_per_flight * 2)
+    step_rise = FLOOR_H / (steps_per_flight * 2.0)
 
     for floor in range(FLOORS):
         z0 = floor * FLOOR_H
+
         add_box(
             f"RearWalkway_{floor:02d}",
             (0.0, walkway_y, z0 - 0.10),
@@ -600,9 +656,11 @@ def build_privacy_apartments():
             mat_slab,
             core
         )
+
         # Handrail placement approved in privacy_apartments-new.glb.
         rear_rail_x = 0.584943 if floor == FLOORS - 1 else -0.03
         rear_rail_w = 29.348743 if floor == FLOORS - 1 else 28.0
+
         add_box(
             f"FloorHandrailRear_F{floor:02d}",
             (rear_rail_x, walkway_y - 0.8, z0 + 0.55),
@@ -610,6 +668,7 @@ def build_privacy_apartments():
             mat_railing_glass,
             core
         )
+
         add_box(
             f"FloorHandrailLeft_F{floor:02d}",
             (-overall_w / 2.0, walkway_y, z0 + 0.55),
@@ -617,6 +676,7 @@ def build_privacy_apartments():
             mat_railing_glass,
             core
         )
+
         if floor == 0:
             add_box(
                 "StairHandrailEntrance_F00",
@@ -634,6 +694,7 @@ def build_privacy_apartments():
                 mat_railing_glass,
                 core
             )
+
         add_box(
             f"StairFloorLanding_{floor:02d}",
             (overall_w / 2.0 + 1.3, walkway_y, z0 - 0.10),
@@ -641,6 +702,7 @@ def build_privacy_apartments():
             mat_slab,
             core
         )
+
         add_box(
             f"StairHandrailFloor_F{floor:02d}",
             (overall_w / 2.0 + 2.8, walkway_y, z0 + 0.55),
@@ -654,6 +716,7 @@ def build_privacy_apartments():
 
         for step in range(steps_per_flight):
             top = z0 + (step + 1) * step_rise
+
             add_box(
                 f"StairOut_F{floor:02d}_{step:02d}",
                 (
@@ -670,6 +733,7 @@ def build_privacy_apartments():
         flight_run = steps_per_flight * stair_tread
         flight_length = math.hypot(flight_run, FLOOR_H / 2.0)
         flight_angle = math.atan2(FLOOR_H / 2.0, flight_run)
+
         add_box(
             f"StairRampCollision_Out_F{floor:02d}",
             (
@@ -682,8 +746,10 @@ def build_privacy_apartments():
             core,
             rotation_euler=(-flight_angle, 0.0, 0.0)
         )
+
         out_inner_length = 2.0 if floor == 0 else (4.14653 if floor in (1, 2) else flight_length)
         out_outer_z = z0 + (1.68705 if floor == 0 else 1.388908)
+
         add_box(
             f"StairHandrailOutOuter_F{floor:02d}",
             (stair_x_a - 0.65, -9.37513, out_outer_z),
@@ -691,6 +757,7 @@ def build_privacy_apartments():
             mat_railing_glass,
             core
         )
+
         add_box(
             f"StairHandrailOutInner_F{floor:02d}",
             (stair_x_a + 0.65, -8.667388, z0 + 1.388908),
@@ -698,7 +765,9 @@ def build_privacy_apartments():
             mat_railing_glass,
             core
         )
+
         far_y = stair_near_y - steps_per_flight * stair_tread
+
         add_box(
             f"StairHalfLanding_F{floor:02d}",
             (
@@ -710,6 +779,7 @@ def build_privacy_apartments():
             mat_slab,
             core
         )
+
         add_box(
             f"StairHandrailHalf_F{floor:02d}",
             (
@@ -724,6 +794,7 @@ def build_privacy_apartments():
 
         for step in range(steps_per_flight):
             top = half_z + (step + 1) * step_rise
+
             add_box(
                 f"StairBack_F{floor:02d}_{step:02d}",
                 (
@@ -748,7 +819,9 @@ def build_privacy_apartments():
             core,
             rotation_euler=(flight_angle, 0.0, 0.0)
         )
+
         back_inner_h = 1.092331 if floor == 0 else 1.10
+
         add_box(
             f"StairHandrailBackInner_F{floor:02d}",
             (stair_x_b - 0.65, -7.96992, z0 + 3.038908),
@@ -756,6 +829,7 @@ def build_privacy_apartments():
             mat_railing_glass,
             core
         )
+
         add_box(
             f"StairHandrailBackOuter_F{floor:02d}",
             (stair_x_b + 0.65, -9.43439, z0 + 3.038908),
@@ -870,6 +944,12 @@ def build_privacy_apartments():
 
     try:
         scene.render.engine = 'CYCLES'
+    except Exception:
+        pass
+
+    # Update scene before saving.
+    try:
+        bpy.context.view_layer.update()
     except Exception:
         pass
 
