@@ -19,6 +19,13 @@ func _ready() -> void:
 			node.create_trimesh_collision()
 			if str(node.name).begins_with("StairRampCollision_"):
 				node.visible = false
+			if str(node.name).begins_with("LampBulb_"):
+				var light := OmniLight3D.new()
+				light.name = str(node.name).replace("LampBulb_", "LampLight_")
+				light.position = node.position
+				light.light_energy = 4.0
+				light.omni_range = 6.0
+				apartments.add_child(light)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -14,8 +14,11 @@ import os
 # OUTPUT SETTINGS
 # ============================================================
 
-# Default output: user home folder.
-OUTPUT_BLEND = os.path.join(os.path.expanduser("~"), "privacy_apartments.blend")
+# Default output: user home folder, or the rebuild script's project root.
+OUTPUT_BLEND = os.path.join(
+    os.environ.get("REBUILD_ROOT", os.path.expanduser("~")),
+    "privacy_apartments.blend"
+)
 
 # If the current Blender file is already saved, save next to it instead.
 if bpy.data.filepath:
