@@ -109,5 +109,3 @@ godot/privacy-apartments/explorer.gd        First-person movement and interactio
 ```bash
 godot --headless --path godot/privacy-apartments --quit-after 3
 ```
-
-A GLB UID fallback warning may appear during startup; Godot still resolves the model through its resource path.

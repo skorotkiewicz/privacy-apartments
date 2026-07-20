@@ -79,6 +79,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
+	if not PhysicsServer3D.body_get_space(get_rid()).is_valid():
+		return
 	var was_on_floor := is_on_floor()
 	var use_pressed := Input.is_physical_key_pressed(KEY_E)
 	if use_pressed and not use_was_pressed:
