@@ -615,6 +615,13 @@ def build_privacy_apartments():
             core
         )
         add_box(
+            f"FloorHandrailStairEnd_F{floor:02d}",
+            (overall_w / 2.0 - 0.5, walkway_y - 0.8, z0 + 0.55),
+            (1.0, 0.10, 1.10),
+            mat_railing_glass,
+            core
+        )
+        add_box(
             f"StairFloorLanding_{floor:02d}",
             (overall_w / 2.0 + 1.3, walkway_y, z0 - 0.10),
             (3.0, 1.6, 0.20),
