@@ -4,6 +4,7 @@ signal privacy_changed(tag: String, is_open: bool)
 
 @export var speed := 6.0
 @export var look_sensitivity := 0.002
+@export var step_height := 0.35
 
 @onready var camera: Camera3D = $Camera3D
 @onready var flashlight: SpotLight3D = $Camera3D/Flashlight
@@ -14,6 +15,7 @@ var use_was_pressed := false
 
 func _ready() -> void:
 	camera.make_current()
+	floor_snap_length = step_height
 	look_at(Vector3(0, global_position.y, 0))
 	for node in apartments.get_children():
 		if node is MeshInstance3D:
@@ -48,6 +50,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
+	var was_on_floor := is_on_floor()
 	var use_pressed := Input.is_physical_key_pressed(KEY_E)
 	if use_pressed and not use_was_pressed:
 		_toggle_interactable()
@@ -62,8 +65,36 @@ func _physics_process(delta: float) -> void:
 	var direction := (right.normalized() * (float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))) + forward.normalized() * (float(Input.is_physical_key_pressed(KEY_W)) - float(Input.is_physical_key_pressed(KEY_S)))).normalized()
 	velocity.x = direction.x * speed
 	velocity.z = direction.z * speed
+	var start_position := global_position
+	var intended_motion := direction * speed * delta
 	move_and_slide()
+	var actual_motion := global_position - start_position
+	actual_motion.y = 0.0
+	if was_on_floor and intended_motion.length_squared() > 0.0 and actual_motion.length() < intended_motion.length() * 0.5:
+		_try_step_up(intended_motion)
 	_update_prompt()
+
+func _try_step_up(motion: Vector3) -> void:
+	var parameters := PhysicsTestMotionParameters3D.new()
+	var result := PhysicsTestMotionResult3D.new()
+	parameters.from = global_transform
+	parameters.motion = Vector3.UP * step_height
+	if PhysicsServer3D.body_test_motion(get_rid(), parameters):
+		return
+	var raised := global_transform.translated(Vector3.UP * step_height)
+	parameters.from = raised
+	parameters.motion = motion
+	if PhysicsServer3D.body_test_motion(get_rid(), parameters):
+		return
+	var target := raised.translated(motion)
+	parameters.from = target
+	parameters.motion = Vector3.DOWN * (step_height + floor_snap_length)
+	if not PhysicsServer3D.body_test_motion(get_rid(), parameters, result):
+		return
+	if result.get_collision_normal().dot(up_direction) < cos(floor_max_angle):
+		return
+	global_transform = target.translated(result.get_travel())
+	velocity.y = 0.0
 
 func _find_interactable() -> Node3D:
 	var query := PhysicsRayQueryParameters3D.create(camera.global_position, camera.global_position - camera.global_transform.basis.z * 4.0)
