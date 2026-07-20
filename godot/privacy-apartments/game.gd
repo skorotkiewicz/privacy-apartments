@@ -19,6 +19,7 @@ const MAX_ATTENTION := 100.0
 @onready var ending: ColorRect = $HUD/Ending
 @onready var ending_text: Label = $HUD/Ending/Text
 @onready var drone: AudioStreamPlayer = $Drone
+@onready var heartbeat: AudioStreamPlayer = $Heartbeat
 @onready var sfx: AudioStreamPlayer = $SFX
 
 var breaches: Array[String] = []
@@ -43,6 +44,8 @@ func _ready() -> void:
 	if DisplayServer.get_name() != "headless":
 		drone.stream = _make_drone()
 		drone.play()
+		heartbeat.stream = _make_heartbeat()
+		heartbeat.play()
 	_say("PRIVACY PROTOCOL FAILED\nDo not let it learn your face.", 4.0)
 	_update_hud()
 
@@ -64,10 +67,15 @@ func _process(delta: float) -> void:
 		if gaze_warning_wait <= 0.0:
 			_say("LOOK AWAY", 0.7)
 			gaze_warning_wait = 1.8
-	if player.global_position.distance_to(watcher.global_position) < 3.0:
+	var watcher_distance := player.global_position.distance_to(watcher.global_position)
+	if watcher_distance < 3.0:
 		attention += delta * 4.0
 
 	var now := Time.get_ticks_msec() * 0.001
+	var fear := maxf(clampf(attention / MAX_ATTENTION, 0.0, 1.0), 1.0 - clampf(watcher_distance / 12.0, 0.0, 1.0))
+	heartbeat.volume_db = lerpf(-32.0, -5.0, fear)
+	heartbeat.pitch_scale = lerpf(0.8, 1.55, fear)
+	camera.fov = 75.0 + sin(now * 2.5) * fear * fear * 1.6
 	var flicker := attention > 55.0 and sin(now * 31.0) + sin(now * 17.0) > 1.72
 	flashlight.light_energy = 0.35 if flicker else 6.5
 	for tag in breaches:
@@ -86,6 +94,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _exit_tree() -> void:
 	drone.stop()
 	drone.stream = null
+	heartbeat.stop()
+	heartbeat.stream = null
 	sfx.stop()
 	sfx.stream = null
 
@@ -276,6 +286,25 @@ func _make_sound(start_hz: float, end_hz: float, duration: float, grit: float) -
 		var envelope := sin(progress * PI)
 		var wave := sin(phase) * (1.0 - grit) + sin(phase * 7.13) * grit
 		samples[frame] = int(wave * envelope * 110.0) & 0xff
+	stream.data = samples
+	return stream
+
+func _make_heartbeat() -> AudioStreamWAV:
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = 11025
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = int(stream.mix_rate * 1.2)
+	var samples := PackedByteArray()
+	samples.resize(stream.loop_end)
+	for frame in range(stream.loop_end):
+		var cycle := float(frame) / stream.mix_rate
+		var sample := 0.0
+		for offset in [0.0, 0.24]:
+			var age: float = cycle - float(offset)
+			if age >= 0.0 and age < 0.22:
+				sample += sin(age * TAU * 52.0) * exp(-age * 20.0) * (1.0 if offset == 0.0 else 0.7)
+		samples[frame] = int(clampf(sample, -1.0, 1.0) * 100.0) & 0xff
 	stream.data = samples
 	return stream
 
