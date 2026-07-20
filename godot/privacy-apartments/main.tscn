@@ -43,11 +43,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3534174, -2.9343872, -2.03
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1609323871]
 transform = Transform3D(0.7885849, 0.14437935, -0.5977364, 0.41932, -0.837252, 0.3509701, -0.44978315, -0.5274125, -0.72078526, -10.161776, -3.5008278, -20.433847)
+visible = false
 light_energy = 1.5
 shadow_enabled = true
 
 [node name="Sun2" type="DirectionalLight3D" parent="." unique_id=199242426]
-transform = Transform3D(0.018019319, 0.9578134, -0.28682593, -0.9372416, 0.11609074, 0.32878774, 0.3482151, 0.26290062, 0.8997942, 3.2015285, 5.669505, 22.668417)
+transform = Transform3D(0.87524134, -0.43968296, -0.20157263, 0.41709334, 0.4750549, 0.77482647, -0.24491993, -0.7622348, 0.59917647, -1.929779, 54.87082, 0.61550903)
 light_energy = 1.5
 shadow_enabled = true
 
