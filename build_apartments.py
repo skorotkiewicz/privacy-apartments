@@ -37,8 +37,8 @@ CLEAR_EXISTING = True
 # BUILDING PARAMETERS
 # ============================================================
 
-FLOORS = 5
-UNITS_PER_FLOOR = 4
+FLOORS = 12 # 5
+UNITS_PER_FLOOR = 8 # 4
 
 UNIT_W = 6.5          # Apartment width
 UNIT_D = 11.0         # Apartment depth

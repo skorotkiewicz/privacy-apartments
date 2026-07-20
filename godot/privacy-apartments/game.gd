@@ -1,12 +1,11 @@
 extends Node3D
 
-const STARTING_BREACHES: Array[String] = [
-	"F00_U00",
-	"F01_U03",
-	"F02_U01",
-	"F03_U02",
-]
 const MAX_ATTENTION := 100.0
+
+@export_category("Building Layout")
+@export_range(1, 100, 1) var floors := 12
+@export_range(1, 100, 1) var units_per_floor := 8
+@export_range(1, 100, 1) var blinds_to_close := 4
 
 @onready var player: Node3D = $Player
 @onready var camera: Camera3D = $Player/Camera3D
@@ -33,10 +32,17 @@ var message_tween: Tween
 
 func _ready() -> void:
 	player.connect("privacy_changed", _on_privacy_changed)
-	for tag in STARTING_BREACHES:
+	var room_tags: Array[String] = []
+	for floor in range(floors):
+		for unit in range(units_per_floor):
+			room_tags.append("F%02d_U%02d" % [floor, unit])
+	room_tags.shuffle()
+	assert(blinds_to_close <= room_tags.size(), "Cannot open %d blinds in a %dx%d building" % [blinds_to_close, floors, units_per_floor])
+	for index in range(blinds_to_close):
+		var tag := room_tags[index]
 		if _set_privacy(tag, true):
 			breaches.append(tag)
-	assert(breaches.size() == STARTING_BREACHES.size(), "Expected privacy controls are missing from the model")
+	assert(breaches.size() == blinds_to_close, "Expected privacy controls are missing from the model")
 	_add_door_numbers()
 	watcher = _make_watcher()
 	apartments.add_child(watcher)
@@ -185,21 +191,28 @@ func _update_hud() -> void:
 	objective.text = "SEAL THE EXPOSED APARTMENTS  %d REMAIN\nNearest: %s  ·  %.0f m" % [breaches.size(), _describe_tag(nearest), distance]
 
 func _add_door_numbers() -> void:
-	for floor in range(5):
-		for unit in range(4):
+	var model_door_count := 0
+	for child in apartments.get_children():
+		if str(child.name).begins_with("EntranceDoor_"):
+			model_door_count += 1
+	assert(model_door_count == floors * units_per_floor, "Godot layout is %dx%d but the model contains %d apartment doors" % [floors, units_per_floor, model_door_count])
+
+	for floor in range(floors):
+		for unit in range(units_per_floor):
 			var tag := "F%02d_U%02d" % [floor, unit]
 			var door := apartments.get_node_or_null(NodePath("EntranceDoor_" + tag)) as Node3D
-			if door:
-				var number := Label3D.new()
-				number.name = "Number"
-				number.text = "%d%02d" % [floor + 1, unit + 1]
-				number.position = Vector3(0.575, 0.7, 0.08)
-				number.font_size = 24
-				number.outline_size = 5
-				number.pixel_size = 0.006
-				number.shaded = true # lighting
-				number.modulate = Color(0.82, 0.78, 0.64)
-				door.add_child(number)
+			if not door:
+				continue
+			var number := Label3D.new()
+			number.name = "Number"
+			number.text = "%d%02d" % [floor + 1, unit + 1]
+			number.position = Vector3(0.575, 0.7, 0.08)
+			number.font_size = 24
+			number.outline_size = 5
+			number.pixel_size = 0.006
+			number.shaded = true # lighting
+			number.modulate = Color(0.82, 0.78, 0.64)
+			door.add_child(number)
 
 func _describe_tag(tag: String) -> String:
 	var parts := tag.split("_")
