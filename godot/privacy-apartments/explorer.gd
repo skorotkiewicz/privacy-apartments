@@ -55,7 +55,7 @@ func _toggle_interactable() -> void:
 	var node: Node = get_world_3d().direct_space_state.intersect_ray(query).get("collider")
 	while node:
 		var object_name := str(node.name)
-		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_") or object_name.begins_with("Louver_")):
+		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_") or object_name.begins_with("Louver_") or object_name.begins_with("LightSwitch")):
 			break
 		node = node.get_parent()
 	if not node:
@@ -64,12 +64,22 @@ func _toggle_interactable() -> void:
 	if str(object.name).begins_with("Louver_"):
 		_toggle_blinds(object)
 		return
+	if str(object.name).begins_with("LightSwitch"):
+		_toggle_light(object)
+		return
 	var closed_y: float = object.get_meta("closed_y", object.rotation.y)
 	var opening: bool = not object.get_meta("open", false)
 	var direction := -1.0 if str(object.name).ends_with("_Right") else 1.0
 	object.set_meta("closed_y", closed_y)
 	object.set_meta("open", opening)
 	object.create_tween().tween_property(object, "rotation:y", closed_y + (direction * PI / 2.0 if opening else 0.0), 0.25)
+
+func _toggle_light(light_switch: Node3D) -> void:
+	var tag := str(light_switch.name).get_slice("_", 1)
+	var controlled_name := str(light_switch.get_meta("controls", "LampLight_" + tag))
+	var light := apartments.get_node_or_null(NodePath(controlled_name))
+	if light:
+		light.visible = not light.visible
 
 func _toggle_blinds(hit_blind: Node3D) -> void:
 	var prefix := str(hit_blind.name)

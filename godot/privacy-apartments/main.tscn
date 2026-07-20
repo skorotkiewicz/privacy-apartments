@@ -33,6 +33,7 @@ current = true
 environment = SubResource("Environment_main")
 
 [node name="Apartments" parent="." unique_id=1280652106 instance=ExtResource("1_model")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3534174, -2.9343872, -2.0345364)
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1609323871]
 transform = Transform3D(0.7885849, 0.14437935, -0.5977364, 0.41932, -0.837252, 0.3509701, -0.44978315, -0.5274125, -0.72078526, -10.161776, -3.5008278, -20.433847)
@@ -40,7 +41,7 @@ light_energy = 1.5
 shadow_enabled = true
 
 [node name="Sun2" type="DirectionalLight3D" parent="." unique_id=199242426]
-transform = Transform3D(-0.7304847, 0.6776568, 0.084696345, -0.587485, -0.68677855, 0.42801523, 0.34821513, 0.26290065, 0.89979416, -3.6293507, 13.670692, 26.220695)
+transform = Transform3D(0.018019319, 0.9578134, -0.28682593, -0.9372416, 0.11609074, 0.32878774, 0.3482151, 0.26290062, 0.8997942, 3.2015285, 5.669505, 22.668417)
 light_energy = 1.5
 shadow_enabled = true
 
