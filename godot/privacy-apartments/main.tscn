@@ -1,7 +1,8 @@
-[gd_scene format=3 uid="uid://dn2swo7fgvmud"]
+[gd_scene load_steps=8 format=3 uid="uid://dn2swo7fgvmud"]
 
 [ext_resource type="PackedScene" uid="uid://cy3gsbq86e6an" path="res://assets/privacy_apartments.glb" id="1_model"]
 [ext_resource type="Script" uid="uid://bnn8g2d8t5bg6" path="res://explorer.gd" id="2_controller"]
+[ext_resource type="Script" path="res://game.gd" id="3_game"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
@@ -9,13 +10,44 @@ height = 1.8
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
-background_color = Color(0.58, 0.66, 0.75, 1)
+background_color = Color(0.0015, 0.003, 0.008, 1)
 ambient_light_source = 3
-ambient_light_color = Color(0.8, 0.85, 1, 1)
-ambient_light_energy = 0.7
+ambient_light_color = Color(0.055, 0.075, 0.12, 1)
+ambient_light_energy = 0.055
 tonemap_mode = 2
+fog_enabled = true
+fog_light_color = Color(0.035, 0.05, 0.08, 1)
+fog_light_energy = 0.12
+fog_density = 0.018
+fog_sky_affect = 0.08
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.022
+volumetric_fog_albedo = Color(0.16, 0.2, 0.28, 1)
+volumetric_fog_emission = Color(0.002, 0.003, 0.008, 1)
+volumetric_fog_length = 38.0
+volumetric_fog_ambient_inject = 0.12
+adjustment_enabled = true
+adjustment_brightness = 0.72
+adjustment_contrast = 1.18
+adjustment_saturation = 0.58
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_threat_bg"]
+bg_color = Color(0.035, 0.038, 0.045, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.24, 0.25, 0.28, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_threat_fill"]
+bg_color = Color(0.63, 0.015, 0.012, 0.95)
+
+[sub_resource type="AudioStreamGenerator" id="AudioStreamGenerator_drone"]
+buffer_length = 0.25
+mix_rate = 11025.0
 
 [node name="ApartmentExplorer" type="Node3D" unique_id=350391128]
+script = ExtResource("3_game")
 
 [node name="Player" type="CharacterBody3D" parent="." unique_id=677719311]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 14)
@@ -30,10 +62,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 current = true
 
 [node name="Flashlight" type="SpotLight3D" parent="Player/Camera3D" unique_id=1095231395]
-visible = false
-light_energy = 0.5
+light_color = Color(0.72, 0.79, 0.9, 1)
+light_energy = 6.5
 shadow_enabled = true
-spot_range = 10.0
+spot_range = 17.0
+spot_attenuation = 0.72
+spot_angle = 27.0
+spot_angle_attenuation = 0.8
+volumetric_fog_energy = 0.55
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=380207859]
 environment = SubResource("Environment_main")
@@ -41,29 +77,173 @@ environment = SubResource("Environment_main")
 [node name="Apartments" parent="." unique_id=1280652106 instance=ExtResource("1_model")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3534174, -2.9343872, -2.0345364)
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1609323871]
+[node name="Moon" type="DirectionalLight3D" parent="." unique_id=1609323871]
 transform = Transform3D(0.87524134, -0.43968296, -0.20157263, 0.41709334, 0.4750549, 0.77482647, -0.24491993, -0.7622348, 0.59917647, -1.929779, 54.87082, 0.61550903)
-light_energy = 1.5
+light_color = Color(0.18, 0.25, 0.42, 1)
+light_energy = 0.045
 shadow_enabled = true
+directional_shadow_max_distance = 55.0
 
-[node name="Controls" type="Label" parent="." unique_id=1685365573]
-offset_left = 16.0
-offset_top = 16.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+[node name="Drone" type="AudioStreamPlayer" parent="."]
+stream = SubResource("AudioStreamGenerator_drone")
+volume_db = -18.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Title" type="Label" parent="HUD"]
+offset_left = 22.0
+offset_top = 18.0
+offset_right = 430.0
+offset_bottom = 52.0
+theme_override_colors/font_color = Color(0.72, 0.08, 0.055, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
-text = "WASD: walk  |  Space: jump  |  E: interact  |  F: flashlight  |  Mouse: look  |  Esc: release mouse"
+theme_override_font_sizes/font_size = 25
+text = "THE LAST PRIVATE BUILDING"
 
-[node name="Crosshair" type="Label" parent="." unique_id=1949088582]
+[node name="Objective" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 58.0
+offset_right = 620.0
+offset_bottom = 112.0
+theme_override_colors/font_color = Color(0.78, 0.81, 0.86, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 5
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 16
+text = "SEAL THE EXPOSED APARTMENTS"
+
+[node name="ThreatValue" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -264.0
+offset_top = 22.0
+offset_right = -24.0
+offset_bottom = 46.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.83, 0.16, 0.12, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 15
+text = "THE WATCHING  08%"
+horizontal_alignment = 2
+
+[node name="Threat" type="ProgressBar" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -264.0
+offset_top = 50.0
+offset_right = -24.0
+offset_bottom = 61.0
+grow_horizontal = 0
+theme_override_styles/background = SubResource("StyleBox_threat_bg")
+theme_override_styles/fill = SubResource("StyleBox_threat_fill")
+value = 8.0
+show_percentage = false
+
+[node name="Crosshair" type="Label" parent="HUD"]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -4.0
-offset_top = -10.0
-offset_right = 4.0
-offset_bottom = 10.0
+offset_left = -10.0
+offset_top = -17.0
+offset_right = 10.0
+offset_bottom = 17.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.72, 0.76, 0.8, 0.72)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 22
 text = "+"
 horizontal_alignment = 1
+
+[node name="Prompt" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = 35.0
+offset_right = 220.0
+offset_bottom = 65.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.84, 0.84, 0.76, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="Message" type="Label" parent="HUD"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 180.0
+offset_top = -172.0
+offset_right = -180.0
+offset_bottom = -112.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.84, 0.08, 0.055, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 7
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Controls" type="Label" parent="HUD"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -42.0
+offset_right = -20.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.48, 0.51, 0.57, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+text = "WASD  MOVE     MOUSE  LOOK     E  INTERACT     F  FLASHLIGHT (IT SEES LIGHT)     SPACE  JUMP     ESC  RELEASE MOUSE"
+horizontal_alignment = 1
+
+[node name="Ending" type="ColorRect" parent="HUD"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.002, 0.003, 0.006, 0.94)
+
+[node name="Text" type="Label" parent="HUD/Ending"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.72, 0.08, 0.055, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 12
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 1
+vertical_alignment = 1

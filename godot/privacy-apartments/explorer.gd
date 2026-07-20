@@ -1,11 +1,14 @@
 extends CharacterBody3D
 
+signal privacy_changed(tag: String, is_open: bool)
+
 @export var speed := 6.0
 @export var look_sensitivity := 0.002
 
 @onready var camera: Camera3D = $Camera3D
 @onready var flashlight: SpotLight3D = $Camera3D/Flashlight
 @onready var apartments: Node3D = $"../Apartments"
+@onready var prompt: Label = $"../HUD/Prompt"
 
 var use_was_pressed := false
 
@@ -60,19 +63,36 @@ func _physics_process(delta: float) -> void:
 	velocity.x = direction.x * speed
 	velocity.z = direction.z * speed
 	move_and_slide()
+	_update_prompt()
 
-func _toggle_interactable() -> void:
+func _find_interactable() -> Node3D:
 	var query := PhysicsRayQueryParameters3D.create(camera.global_position, camera.global_position - camera.global_transform.basis.z * 4.0)
 	query.exclude = [get_rid()]
 	var node: Node = get_world_3d().direct_space_state.intersect_ray(query).get("collider")
 	while node:
 		var object_name := str(node.name)
 		if node is MeshInstance3D and (object_name.begins_with("EntranceDoor_") or object_name.begins_with("OpenableWindow_") or object_name.begins_with("Louver_") or object_name.begins_with("LightSwitch") or object_name.begins_with("BlindSwitch_")):
-			break
+			return node as Node3D
 		node = node.get_parent()
-	if not node:
+	return null
+
+func _update_prompt() -> void:
+	var object := _find_interactable()
+	prompt.text = ""
+	if not object:
 		return
-	var object := node as Node3D
+	var object_name := str(object.name)
+	if object_name.begins_with("Louver_") or object_name.begins_with("BlindSwitch_"):
+		prompt.text = "[ E ]  %s PRIVACY SEAL" % ("CLOSE" if object.get_meta("open", false) else "OPEN")
+	elif object_name.begins_with("LightSwitch"):
+		prompt.text = "[ E ]  TOGGLE LIGHT"
+	else:
+		prompt.text = "[ E ]  %s" % ("CLOSE" if object.get_meta("open", false) else "OPEN")
+
+func _toggle_interactable() -> void:
+	var object := _find_interactable()
+	if not object:
+		return
 	if str(object.name).begins_with("Louver_") or str(object.name).begins_with("BlindSwitch_"):
 		_toggle_blinds(object)
 		return
@@ -104,11 +124,15 @@ func _toggle_blinds(hit_blind: Node3D) -> void:
 		prefix = "Louver_" + prefix.trim_prefix("BlindSwitch_")
 	else:
 		prefix = prefix.substr(0, prefix.rfind("_"))
+	var tag := prefix.trim_prefix("Louver_")
 	var opening: bool = not hit_blind.get_meta("open", false)
-	hit_blind.set_meta("open", opening)
+	var blind_switch := apartments.get_node_or_null(NodePath("BlindSwitch_" + tag))
+	if blind_switch:
+		blind_switch.set_meta("open", opening)
 	for node in apartments.get_children():
 		if node is MeshInstance3D and str(node.name).begins_with(prefix + "_"):
 			var closed_y: float = node.get_meta("closed_y", node.position.y)
 			node.set_meta("closed_y", closed_y)
 			node.set_meta("open", opening)
 			node.create_tween().tween_property(node, "position:y", closed_y + (1.4 if opening else 0.0), 0.25)
+	privacy_changed.emit(tag, opening)
