@@ -1215,8 +1215,8 @@ def build_privacy_apartments():
         # For top floor it extends over the stair landing side.
         # ------------------------------------------------------------
         if floor == FLOORS - 1:
-            rear_rail_w = overall_w + 2.8
-            rear_rail_x = 1.4
+            rear_rail_w = overall_w - 0.25 + 1.4
+            rear_rail_x = -0.03 + 0.7
         else:
             rear_rail_w = overall_w - 0.25
             rear_rail_x = -0.03
