@@ -209,11 +209,27 @@ func _finish(won: bool) -> void:
 	game_over = true
 	player.process_mode = Node.PROCESS_MODE_DISABLED
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	ending.visible = true
-	ending_text.text = ("NO ONE CAN SEE IN.\n\nPRIVACY RESTORED" if won else "IT KNOWS YOUR FACE.\n\nTHE WATCHING IS INSIDE") + "\n\nR  —  TRY AGAIN"
-	_play_sound(220.0, 440.0, 1.2, 0.05) if won else _play_sound(90.0, 18.0, 1.6, 0.65)
 	if won:
+		ending.visible = true
+		ending_text.text = "NO ONE CAN SEE IN.\n\nPRIVACY RESTORED\n\nR  —  TRY AGAIN"
+		_play_sound(220.0, 440.0, 1.2, 0.05)
 		watcher.visible = false
+	else:
+		_jumpscare()
+
+func _jumpscare() -> void:
+	_play_sound(620.0, 35.0, 0.8, 0.8)
+	watcher.reparent(camera, false)
+	watcher.position = Vector3(0.0, -1.02, -4.0)
+	watcher.rotation = Vector3(0.0, PI, 0.0)
+	watcher.scale = Vector3.ONE
+	var lunge := create_tween().set_parallel()
+	lunge.tween_property(watcher, "position:z", -0.55, 0.22).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	lunge.tween_property(watcher, "scale", Vector3.ONE * 1.18, 0.22).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	await lunge.finished
+	await get_tree().create_timer(0.12).timeout
+	ending.visible = true
+	ending_text.text = "IT KNOWS YOUR FACE.\n\nTHE WATCHING IS INSIDE\n\nR  —  TRY AGAIN"
 
 func _say(text: String, hold: float) -> void:
 	if message_tween:
