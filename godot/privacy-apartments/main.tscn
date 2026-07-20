@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://dn2swo7fgvmud"]
+[gd_scene load_steps=7 format=3 uid="uid://dn2swo7fgvmud"]
 
 [ext_resource type="PackedScene" uid="uid://cy3gsbq86e6an" path="res://assets/privacy_apartments.glb" id="1_model"]
 [ext_resource type="Script" uid="uid://bnn8g2d8t5bg6" path="res://explorer.gd" id="2_controller"]
@@ -42,10 +42,6 @@ border_color = Color(0.24, 0.25, 0.28, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBox_threat_fill"]
 bg_color = Color(0.63, 0.015, 0.012, 0.95)
 
-[sub_resource type="AudioStreamGenerator" id="AudioStreamGenerator_drone"]
-buffer_length = 0.25
-mix_rate = 11025.0
-
 [node name="ApartmentExplorer" type="Node3D" unique_id=350391128]
 script = ExtResource("3_game")
 
@@ -85,7 +81,6 @@ shadow_enabled = true
 directional_shadow_max_distance = 55.0
 
 [node name="Drone" type="AudioStreamPlayer" parent="."]
-stream = SubResource("AudioStreamGenerator_drone")
 volume_db = -18.0
 
 [node name="HUD" type="CanvasLayer" parent="."]

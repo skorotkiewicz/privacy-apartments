@@ -28,8 +28,6 @@ var move_wait := 0.0
 var gaze_warning_wait := 0.0
 var game_over := false
 var message_tween: Tween
-var drone_playback: AudioStreamGeneratorPlayback
-var drone_time := 0.0
 
 func _ready() -> void:
 	player.connect("privacy_changed", _on_privacy_changed)
@@ -40,13 +38,13 @@ func _ready() -> void:
 	watcher = _make_watcher()
 	apartments.add_child(watcher)
 	_move_watcher()
-	drone.play()
-	drone_playback = drone.get_stream_playback() as AudioStreamGeneratorPlayback
+	if DisplayServer.get_name() != "headless":
+		drone.stream = _make_drone()
+		drone.play()
 	_say("PRIVACY PROTOCOL FAILED\nDo not let it learn your face.", 4.0)
 	_update_hud()
 
 func _process(delta: float) -> void:
-	_fill_drone()
 	if game_over:
 		return
 
@@ -82,6 +80,10 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if game_over and event is InputEventKey and event.physical_keycode == KEY_R and event.pressed:
 		get_tree().reload_current_scene()
+
+func _exit_tree() -> void:
+	drone.stop()
+	drone.stream = null
 
 func _on_privacy_changed(tag: String, is_open: bool) -> void:
 	if game_over:
@@ -228,13 +230,18 @@ func _make_watcher() -> Node3D:
 		root.add_child(eye)
 	return root
 
-func _fill_drone() -> void:
-	if not drone_playback:
-		return
-	var generator := drone.stream as AudioStreamGenerator
-	var sample_step := 1.0 / generator.mix_rate
-	for frame in range(drone_playback.get_frames_available()):
-		var pulse := sin(drone_time * TAU * 43.0) * 0.055 + sin(drone_time * TAU * 47.0) * 0.035
-		var tremolo := 0.65 + sin(drone_time * TAU * 0.23) * 0.2
-		drone_playback.push_frame(Vector2.ONE * pulse * tremolo)
-		drone_time = fmod(drone_time + sample_step, 60.0)
+func _make_drone() -> AudioStreamWAV:
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = 11025
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = stream.mix_rate * 4
+	var samples := PackedByteArray()
+	samples.resize(stream.loop_end)
+	for frame in range(stream.loop_end):
+		var time := float(frame) / stream.mix_rate
+		var pulse := sin(time * TAU * 43.0) * 0.38 + sin(time * TAU * 47.0) * 0.24
+		var tremolo := 0.65 + sin(time * TAU * 0.25) * 0.2
+		samples[frame] = int(pulse * tremolo * 127.0) & 0xff
+	stream.data = samples
+	return stream
