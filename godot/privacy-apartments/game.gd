@@ -36,6 +36,7 @@ func _ready() -> void:
 		if _set_privacy(tag, true):
 			breaches.append(tag)
 	assert(breaches.size() == STARTING_BREACHES.size(), "Expected privacy controls are missing from the model")
+	_add_door_numbers()
 	watcher = _make_watcher()
 	apartments.add_child(watcher)
 	_move_watcher()
@@ -172,6 +173,22 @@ func _update_hud() -> void:
 	var target := apartments.get_node(NodePath("BlindSwitch_" + nearest)) as Node3D
 	var distance: float = player.global_position.distance_to(target.global_position)
 	objective.text = "SEAL THE EXPOSED APARTMENTS  %d REMAIN\nNearest: %s  ·  %.0f m" % [breaches.size(), _describe_tag(nearest), distance]
+
+func _add_door_numbers() -> void:
+	for floor in range(5):
+		for unit in range(4):
+			var tag := "F%02d_U%02d" % [floor, unit]
+			var door := apartments.get_node_or_null(NodePath("EntranceDoor_" + tag)) as Node3D
+			if door:
+				var number := Label3D.new()
+				number.name = "Number"
+				number.text = "%d%02d" % [floor + 1, unit + 1]
+				number.position = Vector3(0.575, 0.15, 0.08)
+				number.font_size = 48
+				number.outline_size = 10
+				number.pixel_size = 0.006
+				number.modulate = Color(0.82, 0.78, 0.64)
+				door.add_child(number)
 
 func _describe_tag(tag: String) -> String:
 	var parts := tag.split("_")
