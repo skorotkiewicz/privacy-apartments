@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://dn2swo7fgvmud"]
 
-[ext_resource type="PackedScene" uid="uid://cy3gsbq86e6an" path="res://assets/privacy_apartments.glb" id="1_model"]
+[ext_resource type="PackedScene" uid="uid://c5xmckw5x4ads" path="res://assets/privacy_apartments.glb" id="1_model"]
 [ext_resource type="Script" uid="uid://bnn8g2d8t5bg6" path="res://explorer.gd" id="2_controller"]
 [ext_resource type="Script" path="res://game.gd" id="3_game"]
 

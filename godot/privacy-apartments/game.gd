@@ -94,8 +94,8 @@ func _process(delta: float) -> void:
 	_update_hud()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if game_over and event is InputEventKey and event.physical_keycode == KEY_R and event.pressed:
-		get_tree().reload_current_scene()
+	if game_over and event is InputEventKey and event.physical_keycode == KEY_R and event.pressed and not event.echo:
+		get_tree().call_deferred("reload_current_scene")
 
 func _exit_tree() -> void:
 	drone.stop()
