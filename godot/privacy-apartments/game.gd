@@ -187,7 +187,7 @@ func _add_door_numbers() -> void:
 				number.font_size = 24
 				number.outline_size = 5
 				number.pixel_size = 0.006
-				number.shaded = true
+				number.shaded = true # lighting
 				number.modulate = Color(0.82, 0.78, 0.64)
 				door.add_child(number)
 
