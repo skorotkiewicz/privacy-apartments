@@ -183,10 +183,11 @@ func _add_door_numbers() -> void:
 				var number := Label3D.new()
 				number.name = "Number"
 				number.text = "%d%02d" % [floor + 1, unit + 1]
-				number.position = Vector3(0.575, 0.15, 0.08)
-				number.font_size = 48
-				number.outline_size = 10
+				number.position = Vector3(0.575, 0.7, 0.08)
+				number.font_size = 24
+				number.outline_size = 5
 				number.pixel_size = 0.006
+				number.shaded = true
 				number.modulate = Color(0.82, 0.78, 0.64)
 				door.add_child(number)
 
