@@ -77,10 +77,10 @@ LOUVER_COUNT = 9
 
 # If True, every room gets a real Blender point light.
 # This looks nicer but can be heavy with many apartments.
-USE_ROOM_LIGHTS = True
+USE_ROOM_LIGHTS = False
 
 # Point light strength.
-ROOM_LIGHT_ENERGY = 30.0
+ROOM_LIGHT_ENERGY = 0.0
 
 
 # ============================================================

@@ -20,9 +20,11 @@ func _ready() -> void:
 			if str(node.name).begins_with("StairRampCollision_"):
 				node.visible = false
 			if str(node.name).begins_with("LampBulb_"):
+				node.visible = false
 				var light := OmniLight3D.new()
 				light.name = str(node.name).replace("LampBulb_", "LampLight_")
 				light.position = node.position
+				light.visible = false
 				light.light_energy = 4.0
 				light.omni_range = 6.0
 				apartments.add_child(light)
@@ -92,6 +94,9 @@ func _toggle_light(light_switch: Node3D) -> void:
 	var light := apartments.get_node_or_null(NodePath(controlled_name))
 	if light:
 		light.visible = not light.visible
+		var bulb := apartments.get_node_or_null(NodePath("LampBulb_" + tag))
+		if bulb:
+			bulb.visible = light.visible
 
 func _toggle_blinds(hit_blind: Node3D) -> void:
 	var prefix := str(hit_blind.name)
