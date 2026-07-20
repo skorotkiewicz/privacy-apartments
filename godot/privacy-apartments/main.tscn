@@ -83,6 +83,9 @@ directional_shadow_max_distance = 55.0
 [node name="Drone" type="AudioStreamPlayer" parent="."]
 volume_db = -18.0
 
+[node name="SFX" type="AudioStreamPlayer" parent="."]
+volume_db = -8.0
+
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Title" type="Label" parent="HUD"]

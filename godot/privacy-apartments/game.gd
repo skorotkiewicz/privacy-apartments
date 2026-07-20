@@ -19,6 +19,7 @@ const MAX_ATTENTION := 100.0
 @onready var ending: ColorRect = $HUD/Ending
 @onready var ending_text: Label = $HUD/Ending/Text
 @onready var drone: AudioStreamPlayer = $Drone
+@onready var sfx: AudioStreamPlayer = $SFX
 
 var breaches: Array[String] = []
 var attention := 8.0
@@ -84,6 +85,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _exit_tree() -> void:
 	drone.stop()
 	drone.stream = null
+	sfx.stop()
+	sfx.stream = null
 
 func _on_privacy_changed(tag: String, is_open: bool) -> void:
 	if game_over:
@@ -92,10 +95,12 @@ func _on_privacy_changed(tag: String, is_open: bool) -> void:
 		if tag not in breaches:
 			breaches.append(tag)
 		_say("A NEW SIGHTLINE OPENED", 1.4)
+		_play_sound(70.0, 520.0, 0.5, 0.35)
 	else:
 		breaches.erase(tag)
 		attention = maxf(0.0, attention - 14.0)
 		_say("SIGHTLINE SEVERED", 1.2)
+		_play_sound(180.0, 55.0, 0.32, 0.2)
 	_set_alarm(tag, is_open)
 	if breaches.is_empty():
 		_finish(true)
@@ -139,6 +144,7 @@ func _move_watcher() -> void:
 	watcher.position = Vector3(blind_switch.position.x - 2.97, blind_switch.position.y, blind_switch.position.z + 1.45)
 	if changed_rooms:
 		_say("SOMETHING MOVED BEHIND THE GLASS", 1.2)
+		_play_sound(55.0, 28.0, 0.85, 0.55)
 
 func _nearest_breach() -> String:
 	var nearest := ""
@@ -177,6 +183,7 @@ func _finish(won: bool) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	ending.visible = true
 	ending_text.text = ("NO ONE CAN SEE IN.\n\nPRIVACY RESTORED" if won else "IT KNOWS YOUR FACE.\n\nTHE WATCHING IS INSIDE") + "\n\nR  —  TRY AGAIN"
+	_play_sound(220.0, 440.0, 1.2, 0.05) if won else _play_sound(90.0, 18.0, 1.6, 0.65)
 	if won:
 		watcher.visible = false
 
@@ -229,6 +236,30 @@ func _make_watcher() -> Node3D:
 		eye.material_override = glow
 		root.add_child(eye)
 	return root
+
+func _play_sound(start_hz: float, end_hz: float, duration: float, grit: float) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	sfx.stream = _make_sound(start_hz, end_hz, duration, grit)
+	sfx.play()
+
+func _make_sound(start_hz: float, end_hz: float, duration: float, grit: float) -> AudioStreamWAV:
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = 11025
+	var frame_count := int(stream.mix_rate * duration)
+	var samples := PackedByteArray()
+	samples.resize(frame_count)
+	var phase := 0.0
+	for frame in range(frame_count):
+		var progress := float(frame) / frame_count
+		var frequency := lerpf(start_hz, end_hz, progress)
+		phase += TAU * frequency / stream.mix_rate
+		var envelope := sin(progress * PI)
+		var wave := sin(phase) * (1.0 - grit) + sin(phase * 7.13) * grit
+		samples[frame] = int(wave * envelope * 110.0) & 0xff
+	stream.data = samples
+	return stream
 
 func _make_drone() -> AudioStreamWAV:
 	var stream := AudioStreamWAV.new()
